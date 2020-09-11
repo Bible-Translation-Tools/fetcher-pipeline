@@ -39,28 +39,40 @@ class ProcessTools:
         if len(process.stderr) > 0:
             self.__logger.error(process.stderr)
 
-    def copy_file(self, src_dir, target_dir, grouping='verse'):
+    def copy_dir(self, src_dir, target_dir, grouping='verse', quality='hi', media=None):
         for path in os.listdir(src_dir):
             if path == 'verses':
                 continue
 
             src_file = os.path.join(src_dir, path)
+            self.copy_file(src_file, target_dir, grouping, quality, media)
 
-            self.__logger.info('Copying file: ' + src_file)
+    def copy_file(self, src_file, target_dir, grouping='verse', quality='hi', media=None):
+        basename = os.path.basename(src_file)
+        path_without_extension = os.path.splitext(basename)[0]
+        extension = os.path.splitext(basename)[1]
+        path_without_extension = re.sub(r'_t[\d]+$', '', path_without_extension)
 
-            path_without_extension = os.path.splitext(path)[0]
-            extension = os.path.splitext(path)[1]
-            path_without_extension = re.sub(r'_t[\d]+$', '', path_without_extension)
-
-            if extension == '.mp3':
-                t_dir = os.path.join(target_dir, extension[1:], 'hi', grouping)
+        if extension == '.mp3':
+            t_dir = os.path.join(target_dir, extension[1:], quality, grouping)
+        elif extension == '.tr':
+            if media is not None:
+                if media == 'mp3':
+                    t_dir = os.path.join(target_dir, extension[1:], media, quality, grouping)
+                else:
+                    t_dir = os.path.join(target_dir, extension[1:], media, grouping)
             else:
-                t_dir = os.path.join(target_dir, extension[1:], grouping)
+                raise Exception("Media is not defined for TR container")
+        else:
+            t_dir = os.path.join(target_dir, extension[1:], grouping)
 
-            t_file = os.path.join(t_dir, path_without_extension + extension)
-            if not os.path.exists(t_file):
-                os.makedirs(t_dir, exist_ok=True)
-                shutil.copy2(src_file, t_file)
-                self.__logger.info('Copied to: ' + t_file)
-            else:
-                self.__logger.info('File exists, skipping...')
+        t_file = os.path.join(t_dir, path_without_extension + extension)
+
+        self.__logger.info('Copying file: ' + src_file + ' to ' + t_file)
+
+        if not os.path.exists(t_file):
+            os.makedirs(t_dir, exist_ok=True)
+            shutil.copy2(src_file, t_file)
+            self.__logger.info('Copied successfully!')
+        else:
+            self.__logger.info('File exists, skipping...')
