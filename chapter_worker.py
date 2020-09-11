@@ -69,7 +69,7 @@ class ChapterWorker:
                             self.__logger.info(
                                 'Copying original verse files from ' + verses_dir + ' into ' + remote_dir
                             )
-                            self.__process_tools.copy_file(verses_dir, remote_dir)
+                            self.__process_tools.copy_dir(verses_dir, remote_dir)
 
                             # Convert chapter into mp3
                             self.__logger.info('Converting chapter: ' + target_file)
@@ -83,13 +83,13 @@ class ChapterWorker:
                             self.__logger.info(
                                 'Copying chapter mp3 from ' + target_dir + ' into ' + remote_dir
                             )
-                            self.__process_tools.copy_file(target_dir, remote_dir, grouping)
+                            self.__process_tools.copy_dir(target_dir, remote_dir, grouping)
 
                             # Copy converted verse files
                             self.__logger.info(
                                 'Copying verses mp3 from ' + verses_dir + ' into ' + remote_dir
                             )
-                            self.__process_tools.copy_file(verses_dir, remote_dir)
+                            self.__process_tools.copy_dir(verses_dir, remote_dir)
 
         self.__logger.info('Deleting temporary directory: ' + self.__temp_dir)
         shutil.rmtree(self.__temp_dir)
