@@ -8,7 +8,7 @@ class ArgvParser:
 
     def __init__(self):
         self.__ftp_dir = None
-        logger = WorkerLogging().logger
+        logger = WorkerLogging().logger()
         usage_message = 'Usage: chapter_worker.py -f <ftp_dir>'
 
         try:
