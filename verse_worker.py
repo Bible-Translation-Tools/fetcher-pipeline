@@ -15,7 +15,7 @@ class VerseWorker:
         self.__temp_dir = init_temp_dir()
 
         self.__wav_regex = r'\/[\d]+\/CONTENTS\/wav\/(?:verse|chunk)'
-        self.__verse_wav_regex = r'_c[\d]+_v[\d]+(?:-[\d]+)?(?:_t[\d]+)?\..*$'
+        self.__verse_regex = r'_c[\d]+_v[\d]+(?:-[\d]+)?(?:_t[\d]+)?\..*$'
         self.__dir_wav_regex = r'^.*\/(.*)\/(.*)\/(.*)\/([\d]+)\/CONTENTS\/wav\/(verse|chunk)'
 
         argv_parser = ArgvParser()
@@ -33,7 +33,7 @@ class VerseWorker:
                     src_file = os.path.join(root, file)
 
                     # Process verse/chunk files only
-                    if re.search(self.__verse_wav_regex, src_file):
+                    if re.search(self.__verse_regex, src_file):
                         # Extract necessary path parts
                         match = re.match(self.__dir_wav_regex, src_file)
                         if match:
