@@ -15,7 +15,7 @@ class ChapterWorker:
         self.__temp_dir = init_temp_dir()
 
         self.__wav_regex = r'\/[\d]+\/CONTENTS\/wav\/(?:chapter|verse|chunk)'
-        self.__chapter_wav_regex = r'_c[\d]+\..*$'
+        self.__chapter_regex = r'_c[\d]+\..*$'
         self.__dir_wav_regex = r'^.*\/(.*)\/(.*)\/(.*)\/([\d]+)\/CONTENTS\/wav\/(chapter|verse|chunk)'
 
         argv_parser = ArgvParser()
@@ -33,7 +33,7 @@ class ChapterWorker:
                     src_file = os.path.join(root, file)
 
                     # Process chapter files only
-                    if re.search(self.__chapter_wav_regex, src_file):
+                    if re.search(self.__chapter_regex, src_file):
                         # Extract necessary path parts
                         match = re.match(self.__dir_wav_regex, src_file)
                         if match:
