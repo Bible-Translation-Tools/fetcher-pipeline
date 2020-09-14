@@ -22,64 +22,65 @@ class ChapterWorker:
         logging.debug("Chapter worker started!")
 
         for src_file in self.__ftp_dir.rglob('*.wav'):
-
             # Process chapter files only
-            if re.search(self.__chapter_regex, str(src_file)):
-                # Extract necessary path parts
-                root_parts = self.__ftp_dir.parts
-                parts = src_file.parts[len(root_parts):]
+            if not re.search(self.__chapter_regex, str(src_file)):
+                continue
 
-                lang = parts[0]
-                resource = parts[1]
-                book = parts[2]
-                chapter = parts[3]
-                grouping = parts[6]
+            # Extract necessary path parts
+            root_parts = self.__ftp_dir.parts
+            parts = src_file.parts[len(root_parts):]
 
-                target_dir = self.__temp_dir.joinpath(lang, resource, book, chapter, grouping)
-                remote_dir = self.__ftp_dir.joinpath(lang, resource, book, chapter, "CONTENTS")
-                verses_dir = target_dir.joinpath("verses")
-                verses_dir.mkdir(parents=True, exist_ok=True)
-                target_file = target_dir.joinpath(src_file.name)
+            lang = parts[0]
+            resource = parts[1]
+            book = parts[2]
+            chapter = parts[3]
+            grouping = parts[6]
 
-                logging.debug('Found chapter file: {}'.format(src_file))
+            target_dir = self.__temp_dir.joinpath(lang, resource, book, chapter, grouping)
+            remote_dir = self.__ftp_dir.joinpath(lang, resource, book, chapter, "CONTENTS")
+            verses_dir = target_dir.joinpath("verses")
+            verses_dir.mkdir(parents=True, exist_ok=True)
+            target_file = target_dir.joinpath(src_file.name)
 
-                # Copy source file to temp dir
-                logging.debug('Copying file {} to {}'.format(src_file, target_file))
-                target_file.write_bytes(src_file.read_bytes())
+            logging.debug('Found chapter file: {}'.format(src_file))
 
-                # Try to fix wav metadata
-                logging.debug('Fixing metadata: {}'.format(target_file))
-                fix_metadata(target_file, self.verbose)
+            # Copy source file to temp dir
+            logging.debug('Copying file {} to {}'.format(src_file, target_file))
+            target_file.write_bytes(src_file.read_bytes())
 
-                # Split chapter files into verses
-                logging.debug('Splitting chapter {} into {}'.format(target_file, verses_dir))
-                split_chapter(target_file, verses_dir, self.verbose)
+            # Try to fix wav metadata
+            logging.debug('Fixing metadata: {}'.format(target_file))
+            fix_metadata(target_file, self.verbose)
 
-                # Copy original verse files
-                logging.debug(
-                    'Copying original verse files from {} into {}'.format(verses_dir, remote_dir)
-                )
-                copy_dir(verses_dir, remote_dir)
+            # Split chapter files into verses
+            logging.debug('Splitting chapter {} into {}'.format(target_file, verses_dir))
+            split_chapter(target_file, verses_dir, self.verbose)
 
-                # Convert chapter into mp3
-                logging.debug('Converting chapter: {}'.format(target_file))
-                convert_to_mp3(target_file, self.verbose)
+            # Copy original verse files
+            logging.debug(
+                'Copying original verse files from {} into {}'.format(verses_dir, remote_dir)
+            )
+            copy_dir(verses_dir, remote_dir)
 
-                # Convert verses into mp3
-                logging.debug('Converting verses in {}'.format(verses_dir))
-                convert_to_mp3(verses_dir, self.verbose)
+            # Convert chapter into mp3
+            logging.debug('Converting chapter: {}'.format(target_file))
+            convert_to_mp3(target_file, self.verbose)
 
-                # Copy converted chapter file
-                logging.debug(
-                    'Copying chapter mp3 from {} into {}'.format(target_dir, remote_dir)
-                )
-                copy_dir(target_dir, remote_dir, grouping)
+            # Convert verses into mp3
+            logging.debug('Converting verses in {}'.format(verses_dir))
+            convert_to_mp3(verses_dir, self.verbose)
 
-                # Copy converted verse files
-                logging.debug(
-                    'Copying verses mp3 from {} into {}'.format(verses_dir, remote_dir)
-                )
-                copy_dir(verses_dir, remote_dir)
+            # Copy converted chapter file
+            logging.debug(
+                'Copying chapter mp3 from {} into {}'.format(target_dir, remote_dir)
+            )
+            copy_dir(target_dir, remote_dir, grouping)
+
+            # Copy converted verse files
+            logging.debug(
+                'Copying verses mp3 from {} into {}'.format(verses_dir, remote_dir)
+            )
+            copy_dir(verses_dir, remote_dir)
 
         logging.debug('Deleting temporary directory: {}'.format(self.__temp_dir))
         rm_tree(self.__temp_dir)
