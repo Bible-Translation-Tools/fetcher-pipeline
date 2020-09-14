@@ -1,87 +1,106 @@
-import os
+import argparse
+import logging
 import re
-import shutil
+from argparse import Namespace
+from pathlib import Path
 
-from argv_parser import ArgvParser
-from logger import WorkerLogging
-from process_tools import ProcessTools
-from temp_dir import init_temp_dir
+from file_utils import init_temp_dir, rm_tree, copy_file
+from process_tools import fix_metadata, convert_to_mp3
 
 
 class VerseWorker:
 
-    def __init__(self):
-        self.__ftp_dir = None
+    def __init__(self, input_dir, verbose=False):
+        self.__ftp_dir = Path(input_dir)
         self.__temp_dir = init_temp_dir()
 
-        self.__wav_regex = r'\/[\d]+\/CONTENTS\/wav\/(?:verse|chunk)'
         self.__verse_regex = r'_c[\d]+_v[\d]+(?:-[\d]+)?(?:_t[\d]+)?\..*$'
         self.__dir_wav_regex = r'^.*\/(.*)\/(.*)\/(.*)\/([\d]+)\/CONTENTS\/wav\/(verse|chunk)'
 
-        argv_parser = ArgvParser()
-        self.__ftp_dir = argv_parser.get_ftp_dir()
-
-        self.__logger = WorkerLogging.logger()
-        self.__process_tools = ProcessTools()
+        self.verbose = verbose
 
     def execute(self):
-        self.__logger.info("Verse worker started!")
+        logging.debug("Verse worker started!")
 
-        for root, dirs, files in os.walk(self.__ftp_dir):
-            for file in files:
-                if re.search(self.__wav_regex, root):
-                    src_file = os.path.join(root, file)
+        for src_file in self.__ftp_dir.rglob('*.wav'):
+            # Process verse/chunk files only
+            if not re.search(self.__verse_regex, str(src_file)):
+                continue
 
-                    # Process verse/chunk files only
-                    if re.search(self.__verse_regex, src_file):
-                        # Extract necessary path parts
-                        match = re.match(self.__dir_wav_regex, src_file)
-                        if match:
-                            lang = match.group(1)
-                            resource = match.group(2)
-                            book = match.group(3)
-                            chapter = match.group(4)
-                            grouping = match.group(5)
+            # Extract necessary path parts
+            root_parts = self.__ftp_dir.parts
+            parts = src_file.parts[len(root_parts):]
 
-                            target_dir = os.path.join(self.__temp_dir, lang, resource, book, chapter, grouping)
-                            remote_dir = os.path.join(self.__ftp_dir, lang, resource, book, chapter, "CONTENTS")
-                            os.makedirs(target_dir, exist_ok=True)
-                            target_file = os.path.join(target_dir, file)
+            lang = parts[0]
+            resource = parts[1]
+            book = parts[2]
+            chapter = parts[3]
+            grouping = parts[6]
 
-                            self.__logger.info('Found verse file: ' + src_file)
+            target_dir = self.__temp_dir.joinpath(lang, resource, book, chapter, grouping)
+            remote_dir = self.__ftp_dir.joinpath(lang, resource, book, chapter, "CONTENTS")
+            target_dir.mkdir(parents=True, exist_ok=True)
+            target_file = target_dir.joinpath(src_file.name)
 
-                            # Copy source file to temp dir
-                            self.__logger.info('Copying file ' + src_file + ' to ' + target_file)
-                            shutil.copy2(src_file, target_file)
+            logging.debug('Found verse file: {}'.format(src_file))
 
-                            # Try to fix wav metadata
-                            self.__logger.info('Fixing metadata: ' + target_file)
-                            self.__process_tools.fix_metadata(target_file)
+            # Copy source file to temp dir
+            logging.debug('Copying file {} to {}'.format(src_file, target_file))
+            target_file.write_bytes(src_file.read_bytes())
 
-                            # Convert verse into mp3
-                            self.__logger.info('Converting verse: ' + target_file)
-                            self.__process_tools.convert_to_mp3(target_file)
+            # Try to fix wav metadata
+            logging.debug('Fixing metadata: {}'.format(target_file))
+            fix_metadata(target_file, self.verbose)
 
-                            # Copy converted verse file (mp3 and cue)
-                            mp3_file = target_file.replace('.wav', '.mp3')
-                            self.__logger.info(
-                                'Copying verse mp3 ' + mp3_file + ' into ' + remote_dir
-                            )
-                            if os.path.exists(mp3_file):
-                                self.__process_tools.copy_file(mp3_file, remote_dir, grouping)
+            # Convert verse into mp3
+            logging.debug('Converting verse: {}'.format(target_file))
+            convert_to_mp3(target_file, self.verbose)
 
-                            cue_file = target_file.replace('.wav', '.cue')
-                            self.__logger.info(
-                                'Copying verse cue ' + cue_file + ' into ' + remote_dir
-                            )
-                            if os.path.exists(cue_file):
-                                self.__process_tools.copy_file(cue_file, remote_dir, grouping)
+            # Copy converted verse file (mp3 and cue)
+            mp3_file = target_file.with_suffix('.mp3')
+            logging.debug(
+                'Copying verse mp3 {} into {}'.format(mp3_file, remote_dir)
+            )
+            if mp3_file.exists():
+                copy_file(mp3_file, remote_dir, grouping)
 
-        self.__logger.info('Deleting temporary directory: ' + self.__temp_dir)
-        shutil.rmtree(self.__temp_dir)
+            cue_file = target_file.with_suffix('.cue')
+            logging.debug(
+                'Copying verse cue {} into {}'.format(cue_file, remote_dir)
+            )
+            if cue_file.exists():
+                copy_file(cue_file, remote_dir, grouping)
 
-        self.__logger.info('Verse worker finished!')
+        logging.debug('Deleting temporary directory {}'.format(self.__temp_dir))
+        rm_tree(self.__temp_dir)
+
+        logging.debug('Verse worker finished!')
 
 
-worker = VerseWorker()
-worker.execute()
+def get_arguments() -> Namespace:
+    """ Parse command line arguments """
+    parser = argparse.ArgumentParser(description='Convert verse files to mp3')
+    parser.add_argument('-i', '--input-dir', help='Input directory')
+    parser.add_argument("--trace", action="store_true", help="Enable tracing output")
+    parser.add_argument("--verbose", action="store_true", help="Enable logs from subprocess")
+
+    return parser.parse_args()
+
+
+def main():
+    """ Run verse worker """
+    args = get_arguments()
+
+    if args.trace:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.WARNING
+
+    logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s', level=log_level)
+
+    worker = VerseWorker(args.input_dir, args.verbose)
+    worker.execute()
+
+
+if __name__ == "__main__":
+    main()
