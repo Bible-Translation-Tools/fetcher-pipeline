@@ -15,7 +15,6 @@ class VerseWorker:
         self.__temp_dir = init_temp_dir()
 
         self.__verse_regex = r'_c[\d]+_v[\d]+(?:-[\d]+)?(?:_t[\d]+)?\..*$'
-        self.__dir_wav_regex = r'^.*\/(.*)\/(.*)\/(.*)\/([\d]+)\/CONTENTS\/wav\/(verse|chunk)'
 
         self.verbose = verbose
 
