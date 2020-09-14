@@ -62,11 +62,20 @@ class VerseWorker:
                             self.__logger.info('Converting verse: ' + target_file)
                             self.__process_tools.convert_to_mp3(target_file)
 
-                            # Copy converted verse file
+                            # Copy converted verse file (mp3 and cue)
+                            mp3_file = target_file.replace('.wav', '.mp3')
                             self.__logger.info(
-                                'Copying verse mp3 from ' + target_dir + ' into ' + remote_dir
+                                'Copying verse mp3 ' + mp3_file + ' into ' + remote_dir
                             )
-                            self.__process_tools.copy_file(target_dir, remote_dir, grouping)
+                            if os.path.exists(mp3_file):
+                                self.__process_tools.copy_file(mp3_file, remote_dir, grouping)
+
+                            cue_file = target_file.replace('.wav', '.cue')
+                            self.__logger.info(
+                                'Copying verse cue ' + cue_file + ' into ' + remote_dir
+                            )
+                            if os.path.exists(cue_file):
+                                self.__process_tools.copy_file(cue_file, remote_dir, grouping)
 
         self.__logger.info('Deleting temporary directory: ' + self.__temp_dir)
         shutil.rmtree(self.__temp_dir)
