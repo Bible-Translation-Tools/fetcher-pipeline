@@ -82,7 +82,7 @@ class ChapterWorker:
             )
             copy_dir(verses_dir, remote_dir)
 
-        logging.debug('Deleting temporary directory: {}'.format(self.__temp_dir))
+        logging.debug('Deleting temporary directory {}'.format(self.__temp_dir))
         rm_tree(self.__temp_dir)
 
         logging.debug('Chapter worker finished!')
