@@ -1,78 +1,41 @@
-import os
-import re
-import shutil
+import logging
 import subprocess
+import sys
 
-from logger import WorkerLogging
+
+def fix_metadata(input_file, verbose=False):
+    run_process(
+        'java -jar tools/bttConverter.jar -f {} -m chunk'.format(input_file),
+        verbose
+    )
 
 
-class ProcessTools:
+def split_chapter(input_file, output_dir, verbose=False):
+    run_process(
+        'java -jar tools/tr-chunk-browser-cli.jar -s -f {} -o {}'.format(input_file, output_dir),
+        verbose
+    )
 
-    def __init__(self):
-        self.__logger = WorkerLogging.logger()
 
-    def fix_metadata(self, input_file):
-        self.run_process(
-            'java -jar tools/bttConverter.jar -f ' + input_file + ' -m chunk'
-        )
+def convert_to_mp3(input_file_or_dir, verbose=False):
+    run_process(
+        'java -jar tools/audio-compressor-cli.jar -f mp3 -i {}'.format(input_file_or_dir),
+        verbose
+    )
 
-    def split_chapter(self, input_file, output_dir):
-        self.run_process(
-            'java -jar tools/tr-chunk-browser-cli.jar -s -f ' + input_file + ' -o ' + output_dir
-        )
 
-    def convert_to_mp3(self, input_file_or_dir):
-        self.run_process(
-            'java -jar tools/audio-compressor-cli.jar -f mp3 -i ' + input_file_or_dir
-        )
+def run_process(command, verbose=False):
+    process = subprocess.run(
+        command,
+        capture_output=True,
+        universal_newlines=True,
+        shell=True
+    )
 
-    def run_process(self, command):
-        process = subprocess.run(
-            command,
-            capture_output=True,
-            universal_newlines=True,
-            shell=True
-        )
-
-        if len(process.stdout) > 0:
-            self.__logger.info(process.stdout)
-        if len(process.stderr) > 0:
-            self.__logger.error(process.stderr)
-
-    def copy_dir(self, src_dir, target_dir, grouping='verse', quality='hi', media=None):
-        for path in os.listdir(src_dir):
-            if path == 'verses':
-                continue
-
-            src_file = os.path.join(src_dir, path)
-            self.copy_file(src_file, target_dir, grouping, quality, media)
-
-    def copy_file(self, src_file, target_dir, grouping='verse', quality='hi', media=None):
-        basename = os.path.basename(src_file)
-        path_without_extension = os.path.splitext(basename)[0]
-        extension = os.path.splitext(basename)[1]
-        path_without_extension = re.sub(r'_t[\d]+$', '', path_without_extension)
-
-        if extension == '.mp3':
-            t_dir = os.path.join(target_dir, extension[1:], quality, grouping)
-        elif extension == '.tr':
-            if media is not None:
-                if media == 'mp3':
-                    t_dir = os.path.join(target_dir, extension[1:], media, quality, grouping)
-                else:
-                    t_dir = os.path.join(target_dir, extension[1:], media, grouping)
-            else:
-                raise Exception("Media is not defined for TR container")
-        else:
-            t_dir = os.path.join(target_dir, extension[1:], grouping)
-
-        t_file = os.path.join(t_dir, path_without_extension + extension)
-
-        self.__logger.info('Copying file: ' + src_file + ' to ' + t_file)
-
-        if not os.path.exists(t_file):
-            os.makedirs(t_dir, exist_ok=True)
-            shutil.copy2(src_file, t_file)
-            self.__logger.info('Copied successfully!')
-        else:
-            self.__logger.info('File exists, skipping...')
+    if process.returncode != 0:
+        logging.error("A fatal error occurred")
+        logging.debug(process.stderr)
+        sys.exit(1)
+    else:
+        if verbose:
+            logging.debug(process.stdout)

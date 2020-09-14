@@ -1,101 +1,117 @@
-import os
+import argparse
+import logging
 import re
-import shutil
+from argparse import Namespace
+from pathlib import Path
 
-from argv_parser import ArgvParser
-from logger import WorkerLogging
-from process_tools import ProcessTools
-from temp_dir import init_temp_dir
+from process_tools import fix_metadata, split_chapter, convert_to_mp3
+from file_utils import init_temp_dir, rm_tree, copy_dir
 
 
 class ChapterWorker:
 
-    def __init__(self):
-        self.__ftp_dir = None
+    def __init__(self, input_dir, verbose=False):
+        self.__ftp_dir = Path(input_dir)
         self.__temp_dir = init_temp_dir()
 
-        self.__wav_regex = r'\/[\d]+\/CONTENTS\/wav\/(?:chapter|verse|chunk)'
         self.__chapter_regex = r'_c[\d]+\..*$'
-        self.__dir_wav_regex = r'^.*\/(.*)\/(.*)\/(.*)\/([\d]+)\/CONTENTS\/wav\/(chapter|verse|chunk)'
 
-        argv_parser = ArgvParser()
-        self.__ftp_dir = argv_parser.get_ftp_dir()
-
-        self.__logger = WorkerLogging.logger()
-        self.__process_tools = ProcessTools()
+        self.verbose = verbose
 
     def execute(self):
-        self.__logger.info("Chapter worker started!")
+        logging.debug("Chapter worker started!")
 
-        for root, dirs, files in os.walk(self.__ftp_dir):
-            for file in files:
-                if re.search(self.__wav_regex, root):
-                    src_file = os.path.join(root, file)
+        for src_file in self.__ftp_dir.rglob('*.wav'):
+            # Process chapter files only
+            if not re.search(self.__chapter_regex, str(src_file)):
+                continue
 
-                    # Process chapter files only
-                    if re.search(self.__chapter_regex, src_file):
-                        # Extract necessary path parts
-                        match = re.match(self.__dir_wav_regex, src_file)
-                        if match:
-                            lang = match.group(1)
-                            resource = match.group(2)
-                            book = match.group(3)
-                            chapter = match.group(4)
-                            grouping = match.group(5)
+            # Extract necessary path parts
+            root_parts = self.__ftp_dir.parts
+            parts = src_file.parts[len(root_parts):]
 
-                            target_dir = os.path.join(self.__temp_dir, lang, resource, book, chapter, grouping)
-                            remote_dir = os.path.join(self.__ftp_dir, lang, resource, book, chapter, "CONTENTS")
-                            verses_dir = os.path.join(target_dir, "verses")
-                            os.makedirs(verses_dir, exist_ok=True)
-                            target_file = os.path.join(target_dir, file)
+            lang = parts[0]
+            resource = parts[1]
+            book = parts[2]
+            chapter = parts[3]
+            grouping = parts[6]
 
-                            self.__logger.info('Found chapter file: ' + src_file)
+            target_dir = self.__temp_dir.joinpath(lang, resource, book, chapter, grouping)
+            remote_dir = self.__ftp_dir.joinpath(lang, resource, book, chapter, "CONTENTS")
+            verses_dir = target_dir.joinpath("verses")
+            verses_dir.mkdir(parents=True, exist_ok=True)
+            target_file = target_dir.joinpath(src_file.name)
 
-                            # Copy source file to temp dir
-                            self.__logger.info('Copying file ' + src_file + ' to ' + target_file)
-                            shutil.copy2(src_file, target_file)
+            logging.debug('Found chapter file: {}'.format(src_file))
 
-                            # Try to fix wav metadata
-                            self.__logger.info('Fixing metadata: ' + target_file)
-                            self.__process_tools.fix_metadata(target_file)
+            # Copy source file to temp dir
+            logging.debug('Copying file {} to {}'.format(src_file, target_file))
+            target_file.write_bytes(src_file.read_bytes())
 
-                            # Split chapter files into verses
-                            self.__logger.info(
-                                'Splitting chapter ' + target_file + ' into ' + verses_dir
-                            )
-                            self.__process_tools.split_chapter(target_file, verses_dir)
+            # Try to fix wav metadata
+            logging.debug('Fixing metadata: {}'.format(target_file))
+            fix_metadata(target_file, self.verbose)
 
-                            # Copy original verse files
-                            self.__logger.info(
-                                'Copying original verse files from ' + verses_dir + ' into ' + remote_dir
-                            )
-                            self.__process_tools.copy_dir(verses_dir, remote_dir)
+            # Split chapter files into verses
+            logging.debug('Splitting chapter {} into {}'.format(target_file, verses_dir))
+            split_chapter(target_file, verses_dir, self.verbose)
 
-                            # Convert chapter into mp3
-                            self.__logger.info('Converting chapter: ' + target_file)
-                            self.__process_tools.convert_to_mp3(target_file)
+            # Copy original verse files
+            logging.debug(
+                'Copying original verse files from {} into {}'.format(verses_dir, remote_dir)
+            )
+            copy_dir(verses_dir, remote_dir)
 
-                            # Convert verses into mp3
-                            self.__logger.info('Converting verses in ' + verses_dir)
-                            self.__process_tools.convert_to_mp3(verses_dir)
+            # Convert chapter into mp3
+            logging.debug('Converting chapter: {}'.format(target_file))
+            convert_to_mp3(target_file, self.verbose)
 
-                            # Copy converted chapter file
-                            self.__logger.info(
-                                'Copying chapter mp3 from ' + target_dir + ' into ' + remote_dir
-                            )
-                            self.__process_tools.copy_dir(target_dir, remote_dir, grouping)
+            # Convert verses into mp3
+            logging.debug('Converting verses in {}'.format(verses_dir))
+            convert_to_mp3(verses_dir, self.verbose)
 
-                            # Copy converted verse files
-                            self.__logger.info(
-                                'Copying verses mp3 from ' + verses_dir + ' into ' + remote_dir
-                            )
-                            self.__process_tools.copy_dir(verses_dir, remote_dir)
+            # Copy converted chapter file
+            logging.debug(
+                'Copying chapter mp3 from {} into {}'.format(target_dir, remote_dir)
+            )
+            copy_dir(target_dir, remote_dir, grouping)
 
-        self.__logger.info('Deleting temporary directory: ' + self.__temp_dir)
-        shutil.rmtree(self.__temp_dir)
+            # Copy converted verse files
+            logging.debug(
+                'Copying verses mp3 from {} into {}'.format(verses_dir, remote_dir)
+            )
+            copy_dir(verses_dir, remote_dir)
 
-        self.__logger.info('Chapter worker finished!')
+        logging.debug('Deleting temporary directory: {}'.format(self.__temp_dir))
+        rm_tree(self.__temp_dir)
+
+        logging.debug('Chapter worker finished!')
 
 
-worker = ChapterWorker()
-worker.execute()
+def get_arguments() -> Namespace:
+    """ Parse command line arguments """
+    parser = argparse.ArgumentParser(description='Split and convert chapter files to mp3')
+    parser.add_argument('-i', '--input-dir', help='Input directory')
+    parser.add_argument("--trace", action="store_true", help="Enable tracing output")
+    parser.add_argument("--verbose", action="store_true", help="Enable logs from subprocess")
+
+    return parser.parse_args()
+
+
+def main():
+    """ Run chapter worker """
+    args = get_arguments()
+
+    if args.trace:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.WARNING
+
+    logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s', level=log_level)
+
+    worker = ChapterWorker(args.input_dir, args.verbose)
+    worker.execute()
+
+
+if __name__ == "__main__":
+    main()
