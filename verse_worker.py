@@ -41,36 +41,36 @@ class VerseWorker:
             target_dir.mkdir(parents=True, exist_ok=True)
             target_file = target_dir.joinpath(src_file.name)
 
-            logging.debug('Found verse file: {}'.format(src_file))
+            logging.debug(f'Found verse file: {src_file}')
 
             # Copy source file to temp dir
-            logging.debug('Copying file {} to {}'.format(src_file, target_file))
+            logging.debug(f'Copying file {src_file} to {target_file}')
             target_file.write_bytes(src_file.read_bytes())
 
             # Try to fix wav metadata
-            logging.debug('Fixing metadata: {}'.format(target_file))
+            logging.debug(f'Fixing metadata: {target_file}')
             fix_metadata(target_file, self.verbose)
 
             # Convert verse into mp3
-            logging.debug('Converting verse: {}'.format(target_file))
+            logging.debug(f'Converting verse: {target_file}')
             convert_to_mp3(target_file, self.verbose)
 
             # Copy converted verse file (mp3 and cue)
             mp3_file = target_file.with_suffix('.mp3')
             logging.debug(
-                'Copying verse mp3 {} into {}'.format(mp3_file, remote_dir)
+                f'Copying verse mp3 {mp3_file} into {remote_dir}'
             )
             if mp3_file.exists():
                 copy_file(mp3_file, remote_dir, grouping)
 
             cue_file = target_file.with_suffix('.cue')
             logging.debug(
-                'Copying verse cue {} into {}'.format(cue_file, remote_dir)
+                f'Copying verse cue {cue_file} into {remote_dir}'
             )
             if cue_file.exists():
                 copy_file(cue_file, remote_dir, grouping)
 
-        logging.debug('Deleting temporary directory {}'.format(self.__temp_dir))
+        logging.debug(f'Deleting temporary directory {self.__temp_dir}')
         rm_tree(self.__temp_dir)
 
         logging.debug('Verse worker finished!')
