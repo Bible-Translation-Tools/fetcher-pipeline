@@ -34,7 +34,8 @@ class VerseWorker:
             resource = parts[1]
             book = parts[2]
             chapter = parts[3]
-            grouping = parts[6]
+            media = parts[5]
+            grouping = parts[7] if media == 'mp3' else parts[6]
 
             target_dir = self.__temp_dir.joinpath(lang, resource, book, chapter, grouping)
             remote_dir = self.__ftp_dir.joinpath(lang, resource, book, chapter, "CONTENTS")
@@ -42,6 +43,13 @@ class VerseWorker:
             target_file = target_dir.joinpath(src_file.name)
 
             logging.debug(f'Found verse file: {src_file}')
+
+            mp3_exists = self.check_file_exists(src_file, remote_dir, 'mp3', grouping)
+            cue_exists = self.check_file_exists(src_file, remote_dir, 'cue', grouping)
+
+            if mp3_exists and cue_exists:
+                logging.debug(f'Files exist. Skipping...')
+                continue
 
             # Copy source file to temp dir
             logging.debug(f'Copying file {src_file} to {target_file}')
@@ -74,6 +82,27 @@ class VerseWorker:
         rm_tree(self.__temp_dir)
 
         logging.debug('Verse worker finished!')
+
+    @staticmethod
+    def check_file_exists(file: Path, remote_dir: Path, media: str, grouping='verse', quality='hi'):
+        """ Check if converted version of the source file exists in remote directory """
+
+        path_without_extension = file.stem
+        path_without_extension = re.sub(r'_t[\d]+$', '', path_without_extension)
+
+        if media is None:
+            raise Exception('Media is not specified')
+
+        if media == 'mp3':
+            r_dir = remote_dir.joinpath(media, quality, grouping)
+        else:
+            r_dir = remote_dir.joinpath(media, grouping)
+
+        r_file = r_dir.joinpath(f'{path_without_extension}.{media}')
+
+        logging.debug(f'Checking file: {r_file}')
+
+        return r_file.exists()
 
 
 def get_arguments() -> Namespace:
