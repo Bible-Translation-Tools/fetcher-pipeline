@@ -19,6 +19,8 @@ class ChapterWorker:
         self.verbose = verbose
 
     def execute(self):
+        """ Execute worker """
+
         logging.debug("Chapter worker started!")
 
         for src_file in self.__ftp_dir.rglob('*.wav'):
@@ -90,6 +92,7 @@ class ChapterWorker:
 
 def get_arguments() -> Namespace:
     """ Parse command line arguments """
+
     parser = argparse.ArgumentParser(description='Split and convert chapter files to mp3')
     parser.add_argument('-i', '--input-dir', help='Input directory')
     parser.add_argument("--trace", action="store_true", help="Enable tracing output")
@@ -100,6 +103,7 @@ def get_arguments() -> Namespace:
 
 def main():
     """ Run chapter worker """
+
     args = get_arguments()
 
     if args.trace:
