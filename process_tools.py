@@ -5,21 +5,28 @@ import sys
 
 def fix_metadata(input_file, verbose=False):
     run_process(
-        'java -jar tools/bttConverter.jar -f {} -m chunk'.format(input_file),
+        f'java -jar tools/bttConverter.jar -f {input_file} -m chunk',
         verbose
     )
 
 
 def split_chapter(input_file, output_dir, verbose=False):
     run_process(
-        'java -jar tools/tr-chunk-browser-cli.jar -s -f {} -o {}'.format(input_file, output_dir),
+        f'java -jar tools/tr-chunk-browser-cli.jar -s -f {input_file} -o {output_dir}',
         verbose
     )
 
 
 def convert_to_mp3(input_file_or_dir, verbose=False):
     run_process(
-        'java -jar tools/audio-compressor-cli.jar -f mp3 -i {}'.format(input_file_or_dir),
+        f'java -jar tools/audio-compressor-cli.jar -f mp3 -i {input_file_or_dir}',
+        verbose
+    )
+
+
+def create_tr(input_dir, verbose=False):
+    run_process(
+        f'java -jar tools/aoh-cli.jar -c -tr {input_dir}',
         verbose
     )
 

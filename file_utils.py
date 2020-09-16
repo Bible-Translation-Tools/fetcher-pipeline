@@ -1,13 +1,11 @@
 import logging
 import re
 from pathlib import Path
-from tempfile import gettempdir
-from uuid import uuid4
+from tempfile import mkdtemp
 
 
 def init_temp_dir() -> Path:
-    path = Path(gettempdir(), str(uuid4()))
-    path.mkdir(parents=True, exist_ok=True)
+    path = Path(mkdtemp())
     return path
 
 
@@ -45,7 +43,7 @@ def copy_file(src_file: Path, target_dir: Path, grouping='verse', quality='hi', 
 
     t_file = t_dir.joinpath(path_without_extension + extension)
 
-    logging.debug('Copying file: {} to {}'.format(src_file, t_file))
+    logging.debug(f'Copying file: {src_file} to {t_file}')
 
     if not t_file.exists():
         t_dir.mkdir(parents=True, exist_ok=True)
