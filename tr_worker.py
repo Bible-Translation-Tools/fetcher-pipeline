@@ -25,9 +25,7 @@ class TrWorker:
         self.__book_tr_files = []
         self.__chapter_tr_files = []
 
-        self.__audio_regex = r'\/[\d]+\/CONTENTS\/(?:wav|mp3)(?:\/(?:hi|low))?\/verse'
         self.__verse_regex = r'_c[\d]+_v[\d]+(?:_t[\d]+)?\..*$'
-        self.__dir_audio_regex = r'^.*\/(.*)\/(.*)\/(.*)\/([\d]+)\/CONTENTS\/(wav|mp3)(?:\/(hi|low))?\/(verse)'
         self.__tr_regex = r'^.*?\/.*?\/.*?\/.*?(?:\/([\d]+))?\/CONTENTS\/tr\/(?:wav|mp3)(?:\/(?:hi|low))?\/verse'
 
         self.verbose = verbose
