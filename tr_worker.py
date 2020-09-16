@@ -31,6 +31,8 @@ class TrWorker:
         self.verbose = verbose
 
     def execute(self):
+        """ Execute worker """
+
         logging.debug("TR worker started!")
 
         existent_tr = self.find_existent_tr()
@@ -88,6 +90,8 @@ class TrWorker:
         logging.debug('TR worker finished!')
 
     def find_existent_tr(self) -> List[Tuple[Group, Path]]:
+        """ Find tr files that exist in the remote directory """
+
         existent_tr = []
         media = ['wav', 'mp3/hi', 'mp3/low']
         for m in media:
@@ -101,6 +105,8 @@ class TrWorker:
         return existent_tr
 
     def group_files(self, files: List[Path], group: Group) -> Dict[str, List[Path]]:
+        """ Group files into Book groups and Chapter groups """
+
         dic = {}
         root_parts = self.__ftp_dir.parts
         for f in files:
@@ -136,6 +142,8 @@ class TrWorker:
         return dic
 
     def create_tr_file(self, dic: str, files: List[Path]):
+        """ Create tr file and copy it to the remote directory"""
+
         parts = json.loads(dic)
 
         lang = parts['lang']
@@ -194,6 +202,8 @@ class TrWorker:
 
     @staticmethod
     def zero_pad_chapter(chapter: str, book: str) -> str:
+        """ Add leading zeros to the chapter depending on the book """
+
         if book == 'psa':
             return chapter.zfill(3)
         else:
@@ -202,6 +212,7 @@ class TrWorker:
 
 def get_arguments() -> Namespace:
     """ Parse command line arguments """
+
     parser = argparse.ArgumentParser(description='Create tr files from mp3 and wav files')
     parser.add_argument('-i', '--input-dir', help='Input directory')
     parser.add_argument("--trace", action="store_true", help="Enable tracing output")
@@ -212,6 +223,7 @@ def get_arguments() -> Namespace:
 
 def main():
     """ Run TR worker """
+
     args = get_arguments()
 
     if args.trace:
