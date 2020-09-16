@@ -42,47 +42,47 @@ class ChapterWorker:
             verses_dir.mkdir(parents=True, exist_ok=True)
             target_file = target_dir.joinpath(src_file.name)
 
-            logging.debug('Found chapter file: {}'.format(src_file))
+            logging.debug(f'Found chapter file: {src_file}')
 
             # Copy source file to temp dir
-            logging.debug('Copying file {} to {}'.format(src_file, target_file))
+            logging.debug(f'Copying file {src_file} to {target_file}')
             target_file.write_bytes(src_file.read_bytes())
 
             # Try to fix wav metadata
-            logging.debug('Fixing metadata: {}'.format(target_file))
+            logging.debug(f'Fixing metadata: {target_file}')
             fix_metadata(target_file, self.verbose)
 
             # Split chapter files into verses
-            logging.debug('Splitting chapter {} into {}'.format(target_file, verses_dir))
+            logging.debug(f'Splitting chapter {target_file} into {verses_dir}')
             split_chapter(target_file, verses_dir, self.verbose)
 
             # Copy original verse files
             logging.debug(
-                'Copying original verse files from {} into {}'.format(verses_dir, remote_dir)
+                f'Copying original verse files from {verses_dir} into {remote_dir}'
             )
             copy_dir(verses_dir, remote_dir)
 
             # Convert chapter into mp3
-            logging.debug('Converting chapter: {}'.format(target_file))
+            logging.debug(f'Converting chapter: {target_file}')
             convert_to_mp3(target_file, self.verbose)
 
             # Convert verses into mp3
-            logging.debug('Converting verses in {}'.format(verses_dir))
+            logging.debug(f'Converting verses in {verses_dir}')
             convert_to_mp3(verses_dir, self.verbose)
 
             # Copy converted chapter file
             logging.debug(
-                'Copying chapter mp3 from {} into {}'.format(target_dir, remote_dir)
+                f'Copying chapter mp3 from {target_dir} into {remote_dir}'
             )
             copy_dir(target_dir, remote_dir, grouping)
 
             # Copy converted verse files
             logging.debug(
-                'Copying verses mp3 from {} into {}'.format(verses_dir, remote_dir)
+                f'Copying verses mp3 from {verses_dir} into {remote_dir}'
             )
             copy_dir(verses_dir, remote_dir)
 
-        logging.debug('Deleting temporary directory {}'.format(self.__temp_dir))
+        logging.debug(f'Deleting temporary directory {self.__temp_dir}')
         rm_tree(self.__temp_dir)
 
         logging.debug('Chapter worker finished!')
