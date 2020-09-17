@@ -76,6 +76,8 @@ class ChapterWorker:
         logging.debug('Chapter worker finished!')
 
     def convert_chapter(self, chapter_file: Path, remote_dir: Path, grouping: str):
+        """ Convert chapter wav file and copy to remote directory"""
+
         # Check if filed exist remotely
         chapter_mp3_exists = check_file_exists(chapter_file, remote_dir, 'mp3', grouping)
         chapter_cue_exists = check_file_exists(chapter_file, remote_dir, 'cue', grouping)
@@ -102,6 +104,8 @@ class ChapterWorker:
             logging.debug('Files exist. Skipping...')
 
     def convert_verses(self, verses_dir: Path, remote_dir: Path):
+        """ Convert verse wav file and copy to remote directory """
+
         for f in verses_dir.iterdir():
             if f.is_dir():
                 continue
