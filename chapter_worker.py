@@ -3,6 +3,7 @@ import logging
 import re
 from argparse import Namespace
 from pathlib import Path
+from typing import Tuple, List
 
 from process_tools import fix_metadata, split_chapter, convert_to_mp3
 from file_utils import init_temp_dir, rm_tree, copy_dir, check_file_exists, copy_file
