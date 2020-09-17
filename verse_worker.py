@@ -89,19 +89,19 @@ class VerseWorker:
             copy_file(cue_file, remote_dir, grouping)
 
 
-def get_arguments() -> Namespace:
+def get_arguments() -> Tuple[Namespace, List[str]]:
     """ Parse command line arguments """
     parser = argparse.ArgumentParser(description='Convert verse files to mp3')
     parser.add_argument('-i', '--input-dir', help='Input directory')
     parser.add_argument("--trace", action="store_true", help="Enable tracing output")
     parser.add_argument("--verbose", action="store_true", help="Enable logs from subprocess")
 
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 
 def main():
     """ Run verse worker """
-    args = get_arguments()
+    args, unknown = get_arguments()
 
     if args.trace:
         log_level = logging.DEBUG
