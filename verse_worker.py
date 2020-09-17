@@ -4,7 +4,7 @@ import re
 from argparse import Namespace
 from pathlib import Path
 
-from file_utils import init_temp_dir, rm_tree, copy_file
+from file_utils import init_temp_dir, rm_tree, copy_file, check_file_exists
 from process_tools import fix_metadata, convert_to_mp3
 
 
@@ -44,8 +44,8 @@ class VerseWorker:
 
             logging.debug(f'Found verse file: {src_file}')
 
-            mp3_exists = self.check_file_exists(src_file, remote_dir, 'mp3', grouping)
-            cue_exists = self.check_file_exists(src_file, remote_dir, 'cue', grouping)
+            mp3_exists = check_file_exists(src_file, remote_dir, 'mp3', grouping)
+            cue_exists = check_file_exists(src_file, remote_dir, 'cue', grouping)
 
             if mp3_exists and cue_exists:
                 logging.debug(f'Files exist. Skipping...')
@@ -60,49 +60,33 @@ class VerseWorker:
             fix_metadata(target_file, self.verbose)
 
             # Convert verse into mp3
-            logging.debug(f'Converting verse: {target_file}')
-            convert_to_mp3(target_file, self.verbose)
-
-            # Copy converted verse file (mp3 and cue)
-            mp3_file = target_file.with_suffix('.mp3')
-            logging.debug(
-                f'Copying verse mp3 {mp3_file} into {remote_dir}'
-            )
-            if mp3_file.exists():
-                copy_file(mp3_file, remote_dir, grouping)
-
-            cue_file = target_file.with_suffix('.cue')
-            logging.debug(
-                f'Copying verse cue {cue_file} into {remote_dir}'
-            )
-            if cue_file.exists():
-                copy_file(cue_file, remote_dir, grouping)
+            self.convert_verse(target_file, remote_dir, grouping)
 
         logging.debug(f'Deleting temporary directory {self.__temp_dir}')
         rm_tree(self.__temp_dir)
 
         logging.debug('Verse worker finished!')
 
-    @staticmethod
-    def check_file_exists(file: Path, remote_dir: Path, media: str, grouping='verse', quality='hi'):
-        """ Check if converted version of the source file exists in remote directory """
+    def convert_verse(self, verse_file: Path, remote_dir: Path, grouping: str):
+        """ Convert verse wav file and copy to remote directory """
 
-        path_without_extension = file.stem
-        path_without_extension = re.sub(r'_t[\d]+$', '', path_without_extension)
+        logging.debug(f'Converting verse: {verse_file}')
+        convert_to_mp3(verse_file, self.verbose)
 
-        if media is None:
-            raise Exception('Media is not specified')
+        # Copy converted verse file (mp3 and cue)
+        mp3_file = verse_file.with_suffix('.mp3')
+        logging.debug(
+            f'Copying verse mp3 {mp3_file} into {remote_dir}'
+        )
+        if mp3_file.exists():
+            copy_file(mp3_file, remote_dir, grouping)
 
-        if media == 'mp3':
-            r_dir = remote_dir.joinpath(media, quality, grouping)
-        else:
-            r_dir = remote_dir.joinpath(media, grouping)
-
-        r_file = r_dir.joinpath(f'{path_without_extension}.{media}')
-
-        logging.debug(f'Checking file: {r_file}')
-
-        return r_file.exists()
+        cue_file = verse_file.with_suffix('.cue')
+        logging.debug(
+            f'Copying verse cue {cue_file} into {remote_dir}'
+        )
+        if cue_file.exists():
+            copy_file(cue_file, remote_dir, grouping)
 
 
 def get_arguments() -> Namespace:
