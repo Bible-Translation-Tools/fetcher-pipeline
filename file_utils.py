@@ -51,3 +51,24 @@ def copy_file(src_file: Path, target_dir: Path, grouping='verse', quality='hi', 
         logging.debug('Copied successfully!')
     else:
         logging.debug('File exists, skipping...')
+
+
+def check_file_exists(file: Path, remote_dir: Path, media: str, grouping='verse', quality='hi'):
+    """ Check if converted version of the source file exists in remote directory """
+
+    path_without_extension = file.stem
+    path_without_extension = re.sub(r'_t[\d]+$', '', path_without_extension)
+
+    if media is None:
+        raise Exception('Media is not specified')
+
+    if media == 'mp3':
+        r_dir = remote_dir.joinpath(media, quality, grouping)
+    else:
+        r_dir = remote_dir.joinpath(media, grouping)
+
+    r_file = r_dir.joinpath(f'{path_without_extension}.{media}')
+
+    logging.debug(f'Checking file: {r_file}')
+
+    return r_file.exists()
