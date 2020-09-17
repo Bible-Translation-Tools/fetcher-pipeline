@@ -210,7 +210,7 @@ class TrWorker:
             return chapter.zfill(2)
 
 
-def get_arguments() -> Namespace:
+def get_arguments() -> Tuple[Namespace, List[str]]:
     """ Parse command line arguments """
 
     parser = argparse.ArgumentParser(description='Create tr files from mp3 and wav files')
@@ -218,13 +218,13 @@ def get_arguments() -> Namespace:
     parser.add_argument("--trace", action="store_true", help="Enable tracing output")
     parser.add_argument("--verbose", action="store_true", help="Enable logs from subprocess")
 
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 
 def main():
     """ Run TR worker """
 
-    args = get_arguments()
+    args, unknown = get_arguments()
 
     if args.trace:
         log_level = logging.DEBUG
