@@ -136,7 +136,7 @@ class ChapterWorker:
                 copy_file(cue_file, remote_dir)
 
 
-def get_arguments() -> Namespace:
+def get_arguments() -> Tuple[Namespace, List[str]]:
     """ Parse command line arguments """
 
     parser = argparse.ArgumentParser(description='Split and convert chapter files to mp3')
@@ -144,13 +144,13 @@ def get_arguments() -> Namespace:
     parser.add_argument("--trace", action="store_true", help="Enable tracing output")
     parser.add_argument("--verbose", action="store_true", help="Enable logs from subprocess")
 
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 
 def main():
     """ Run chapter worker """
 
-    args = get_arguments()
+    args, unknown = get_arguments()
 
     if args.trace:
         log_level = logging.DEBUG
