@@ -215,8 +215,8 @@ def get_arguments() -> Tuple[Namespace, List[str]]:
 
     parser = argparse.ArgumentParser(description='Create tr files from mp3 and wav files')
     parser.add_argument('-i', '--input-dir', help='Input directory')
-    parser.add_argument("--trace", action="store_true", help="Enable tracing output")
-    parser.add_argument("--verbose", action="store_true", help="Enable logs from subprocess")
+    parser.add_argument("-t", "--trace", action="store_true", help="Enable tracing output")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable logs from subprocess")
 
     return parser.parse_known_args()
 
