@@ -33,8 +33,6 @@ class App:
             midnight = now.replace(hour=self.hour, minute=self.minute, second=0)
             seconds_since_midnight = (now - midnight).total_seconds()
 
-            logging.debug(seconds_since_midnight)
-
             if 0 <= seconds_since_midnight < self.sleep_timer:
                 chapter_worker.execute()
                 verse_worker.execute()
