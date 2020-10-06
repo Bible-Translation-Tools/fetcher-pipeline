@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 from tempfile import mkdtemp
 
+import zlib
+
 
 def init_temp_dir() -> Path:
     path = Path(mkdtemp())
@@ -53,7 +55,7 @@ def copy_file(src_file: Path, target_dir: Path, grouping='verse', quality='hi', 
         logging.debug('File exists, skipping...')
 
 
-def check_file_exists(file: Path, remote_dir: Path, media: str, grouping='verse', quality='hi'):
+def check_file_exists(file: Path, remote_dir: Path, media: str, grouping='verse', quality='hi') -> bool:
     """ Check if converted version of the source file exists in remote directory """
 
     path_without_extension = file.stem
@@ -72,3 +74,29 @@ def check_file_exists(file: Path, remote_dir: Path, media: str, grouping='verse'
     logging.debug(f'Checking file: {r_file}')
 
     return r_file.exists()
+
+
+def check_dir_empty(src_dir: Path) -> bool:
+    """ Check if directory is empty or doesn't exist """
+
+    return not src_dir.exists() or not any(src_dir.iterdir())
+
+
+def has_new_files(src_dir: Path, target_dir: Path) -> bool:
+    """ Check if files in target_dir are different than in src_dir """
+
+    for s in src_dir.iterdir():
+        ext = s.suffix
+        s_name = re.sub(r'_t[\d]+.*$', ext, s.name)
+        t = target_dir.joinpath(s_name)
+
+        if not t.exists():
+            return True
+
+        s_hash = zlib.adler32(s.read_bytes())
+        t_hash = zlib.adler32(t.read_bytes())
+
+        if s_hash != t_hash:
+            return True
+
+    return False

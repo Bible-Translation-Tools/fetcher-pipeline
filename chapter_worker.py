@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Tuple, List
 
 from process_tools import fix_metadata, split_chapter, convert_to_mp3
-from file_utils import init_temp_dir, rm_tree, copy_dir, check_file_exists, copy_file
+from file_utils import init_temp_dir, rm_tree, copy_dir, check_file_exists, copy_file, check_dir_empty, has_new_files
 
 
 class ChapterWorker:
@@ -58,6 +58,29 @@ class ChapterWorker:
             # Split chapter files into verses
             logging.debug(f'Splitting chapter {target_file} into {verses_dir}')
             split_chapter(target_file, verses_dir, self.verbose)
+
+            target_verse_dir = remote_dir.joinpath("wav", "verse")
+
+            should_update = (not check_dir_empty(target_verse_dir) and
+                             has_new_files(verses_dir, target_verse_dir))
+
+            print(should_update)
+
+            # If we have a new or updated chapter WAV file
+            # delete all the chapter related resources:
+            # split verses, converted files and TR files
+            if should_update:
+                # Delete related chapter files
+                self.delete_chapter_files(lang, resource, book, chapter)
+
+                # Delete related verse files
+                self.delete_verse_files(lang, resource, book, chapter)
+
+                # Delete related book TR files
+                self.delete_tr_book_files(lang, resource, book, chapter)
+
+                # Delete related chapter TR files
+                self.delete_tr_chapter_files(lang, resource, book, chapter)
 
             # Copy original verse files
             logging.debug(
@@ -135,6 +158,80 @@ class ChapterWorker:
                     f'Copying verse cue {mp3_file} into {remote_dir}'
                 )
                 copy_file(cue_file, remote_dir)
+
+    def delete_tr_book_files(self, lang, resource, book):
+        """ Delete tr files of the specified book """
+
+        remote_book_dir = self.__ftp_dir.joinpath(lang, resource, book, "CONTENTS")
+        book_name_tr = f'{lang}_{resource}_{book}.tr'
+
+        wav_book_tr = remote_book_dir.joinpath("tr", "wav", "verse", book_name_tr)
+        if wav_book_tr.exists():
+            wav_book_tr.unlink()
+
+        mp3_hi_book_tr = remote_book_dir.joinpath("tr", "mp3", "hi", "verse", book_name_tr)
+        if mp3_hi_book_tr.exists():
+            mp3_hi_book_tr.unlink()
+
+        mp3_low_book_tr = remote_book_dir.joinpath("tr", "mp3", "low", "verse", book_name_tr)
+        if mp3_low_book_tr.exists():
+            mp3_low_book_tr.unlink()
+
+    def delete_tr_chapter_files(self, lang, resource, book, chapter):
+        """ Delete tr files of the specified chapter """
+
+        remote_chapter_dir = self.__ftp_dir.joinpath(lang, resource, book, chapter, "CONTENTS")
+        chapter_name_tr = f'{lang}_{resource}_{book}_c{chapter}.tr'
+
+        wav_chapter_tr = remote_chapter_dir.joinpath("tr", "wav", "verse", chapter_name_tr)
+        if wav_chapter_tr.exists():
+            wav_chapter_tr.unlink()
+
+        mp3_hi_chapter_tr = remote_chapter_dir.joinpath("tr", "mp3", "hi", "verse", chapter_name_tr)
+        if mp3_hi_chapter_tr.exists():
+            mp3_hi_chapter_tr.unlink()
+
+        mp3_low_chapter_tr = remote_chapter_dir.joinpath("tr", "mp3", "low", "verse", chapter_name_tr)
+        if mp3_low_chapter_tr.exists():
+            mp3_low_chapter_tr.unlink()
+
+    def delete_chapter_files(self, lang, resource, book, chapter):
+        """ Delete chapter related files (mp3 and cue) """
+
+        remote_chapter_dir = self.__ftp_dir.joinpath(lang, resource, book, chapter, "CONTENTS")
+
+        mp3_hi_chapter_dir = remote_chapter_dir.joinpath("mp3", "hi", "chapter")
+        if mp3_hi_chapter_dir.exists():
+            rm_tree(mp3_hi_chapter_dir)
+
+        mp3_low_chapter_dir = remote_chapter_dir.joinpath("mp3", "low", "chapter")
+        if mp3_low_chapter_dir.exists():
+            rm_tree(mp3_low_chapter_dir)
+
+        cue_chapter_dir = remote_chapter_dir.joinpath("cue", "chapter")
+        if cue_chapter_dir.exists():
+            rm_tree(cue_chapter_dir)
+
+    def delete_verse_files(self, lang, resource, book, chapter):
+        """ Delete verse related files (wav, mp3, cue) """
+
+        remote_chapter_dir = self.__ftp_dir.joinpath(lang, resource, book, chapter, "CONTENTS")
+
+        wav_verse_files = remote_chapter_dir.joinpath("wav", "verse")
+        if wav_verse_files.exists():
+            rm_tree(wav_verse_files)
+
+        mp3_hi_verse_dir = remote_chapter_dir.joinpath("mp3", "hi", "verse")
+        if mp3_hi_verse_dir.exists():
+            rm_tree(mp3_hi_verse_dir)
+
+        mp3_low_verse_dir = remote_chapter_dir.joinpath("mp3", "low", "verse")
+        if mp3_low_verse_dir.exists():
+            rm_tree(mp3_low_verse_dir)
+
+        cue_verse_dir = remote_chapter_dir.joinpath("cue", "verse")
+        if cue_verse_dir.exists():
+            rm_tree(cue_verse_dir)
 
 
 def get_arguments() -> Tuple[Namespace, List[str]]:
