@@ -86,8 +86,7 @@ def has_new_files(src_dir: Path, target_dir: Path) -> bool:
     """ Check if files in target_dir are different than in src_dir """
 
     for s in src_dir.iterdir():
-        ext = s.suffix
-        s_name = re.sub(r'_t[\d]+.*$', ext, s.name)
+        s_name = re.sub(r'_t[\d]+.*$', s.suffix, s.name)
         t = target_dir.joinpath(s_name)
 
         if not t.exists():
