@@ -19,7 +19,7 @@ class App:
         self.hour = hour
         self.minute = minute
 
-        self.sleep_timer = 10
+        self.sleep_timer = 60
 
     def start(self):
         """ Start app """
