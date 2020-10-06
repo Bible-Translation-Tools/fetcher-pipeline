@@ -16,9 +16,10 @@ class App:
     def __init__(self, input_dir, verbose=False, hour=0, minute=0):
         self.__ftp_dir = Path(input_dir)
         self.verbose = verbose
-        self.sleep_timer = 10
         self.hour = hour
         self.minute = minute
+
+        self.sleep_timer = 10
 
     def start(self):
         """ Start app """
