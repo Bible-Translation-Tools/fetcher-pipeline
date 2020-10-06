@@ -1,18 +1,26 @@
 #!/bin/bash
 
 directory=
+hour=
+minute=
 trace=
 verbose=
 
 usage()
 {
-    echo "usage: worker.sh [[[-i directory ] [-t] [-v]] | [-h]]"
+    echo "usage: worker.sh [[[-i directory ] [-hr hour ] [-mn minute ] [-t] [-v]] | [-h]]"
 }
 
 while [ "$1" != "" ]; do
     case $1 in
         -i | --input-dir )      shift
                                 directory=$1
+                                ;;
+        -hr | --hour )          shift
+                                hour=$1
+                                ;;
+        -mn | --minute )        shift
+                                minute=$1
                                 ;;
         -t | --trace )          trace="--trace"
                                 ;;
@@ -32,9 +40,13 @@ if [[ -z "$directory" ]]; then
   exit 1
 fi
 
-python3 chapter_worker.py -i "$directory" "$trace" "$verbose"
+if [[ -z "$hour" ]]; then
+  hour=0
+fi
 
-python3 verse_worker.py -i "$directory" "$trace" "$verbose"
+if [[ -z "$minute" ]]; then
+  minute=0
+fi
 
-python3 tr_worker.py -i "$directory" "$trace" "$verbose"
+python app.py -i "$directory" -hr "$hour" -mn "$minute" "$trace" "$verbose"
 

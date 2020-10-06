@@ -1,9 +1,8 @@
 import logging
 import re
+import zlib
 from pathlib import Path
 from tempfile import mkdtemp
-
-import zlib
 
 
 def init_temp_dir() -> Path:
@@ -99,3 +98,7 @@ def has_new_files(src_dir: Path, target_dir: Path) -> bool:
             return True
 
     return False
+
+
+def rel_path(src: Path, root: Path) -> Path:
+    return Path(*src.parts[len(root.parts):])
