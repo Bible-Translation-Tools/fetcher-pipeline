@@ -64,8 +64,6 @@ class ChapterWorker:
             should_update = (not check_dir_empty(target_verse_dir) and
                              has_new_files(verses_dir, target_verse_dir))
 
-            print(should_update)
-
             # If we have a new or updated chapter WAV file
             # delete all the chapter related resources:
             # split verses, converted files and TR files
