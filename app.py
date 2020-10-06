@@ -30,10 +30,10 @@ class App:
 
         while True:
             now = datetime.now()
-            midnight = now.replace(hour=self.hour, minute=self.minute, second=0)
-            seconds_since_midnight = (now - midnight).total_seconds()
+            target_time = now.replace(hour=self.hour, minute=self.minute, second=0)
+            seconds_since_target_time = (now - target_time).total_seconds()
 
-            if 0 <= seconds_since_midnight < self.sleep_timer:
+            if 0 <= seconds_since_target_time < self.sleep_timer:
                 chapter_worker.execute()
                 verse_worker.execute()
                 tr_worker.execute()
