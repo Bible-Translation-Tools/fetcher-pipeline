@@ -61,8 +61,10 @@ class ChapterWorker:
 
             target_verse_dir = remote_dir.joinpath("wav", "verse")
 
-            should_update = (check_dir_empty(target_verse_dir) or
-                             has_new_files(verses_dir, target_verse_dir))
+            is_new = check_dir_empty(target_verse_dir)
+            is_changed = has_new_files(verses_dir, target_verse_dir)
+
+            should_update = is_new or is_changed
 
             # If we have a new or updated chapter WAV file
             # delete all the chapter related resources:
