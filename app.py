@@ -1,10 +1,14 @@
 import argparse
 import logging
+import os
 from argparse import Namespace
 from datetime import datetime
 from pathlib import Path
 from time import sleep
 from typing import Tuple, List
+
+import sentry_sdk
+from dotenv import load_dotenv
 
 from chapter_worker import ChapterWorker
 from tr_worker import TrWorker
@@ -38,7 +42,35 @@ class App:
                 verse_worker.execute()
                 tr_worker.execute()
 
+                report = self.get_report(
+                    (
+                        chapter_worker.get_report(),
+                        verse_worker.get_report(),
+                        tr_worker.get_report()
+                    )
+                )
+                if report is not None:
+                    logging.error("Fetcher pipeline worker", extra=report)
+
             sleep(self.sleep_timer)
+
+    @staticmethod
+    def get_report(reports):
+        """ Generate workers report """
+
+        report = {
+            "resources_created": [],
+            "resources_deleted": [],
+        }
+        for r in reports:
+            report["resources_created"] += r["resources_created"]
+            report["resources_deleted"] += r["resources_deleted"]
+
+        if (len(report["resources_created"]) > 0 or
+                len(report["resources_deleted"]) > 0):
+            return report
+
+        return None
 
 
 def get_arguments() -> Tuple[Namespace, List[str]]:
@@ -57,6 +89,9 @@ def get_arguments() -> Tuple[Namespace, List[str]]:
 def main():
     """ Launch application """
 
+    # Load environment variables
+    load_dotenv()
+
     args, unknown = get_arguments()
 
     if args.trace:
@@ -65,6 +100,11 @@ def main():
         log_level = logging.WARNING
 
     logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s', level=log_level)
+
+    sentry_sdk.init(
+        os.getenv("SENTRY"),
+        traces_sample_rate=0.0
+    )
 
     app = App(args.input_dir, args.verbose, args.hour, args.minute)
     app.start()

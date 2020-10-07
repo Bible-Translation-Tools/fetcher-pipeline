@@ -19,12 +19,22 @@ def rm_tree(path):
     path.rmdir()
 
 
-def copy_dir(src_dir: Path, target_dir: Path, grouping='verse', quality='hi', media=None):
+def copy_dir(src_dir: Path, target_dir: Path, grouping='verse', quality='hi', media=None) -> Path:
+    """ Iterate src_dir to copy files """
+
+    t_file = None
+
     for src_file in src_dir.glob('*.*'):
-        copy_file(src_file, target_dir, grouping, quality, media)
+        f = copy_file(src_file, target_dir, grouping, quality, media)
+        if t_file is None:
+            t_file = f
+
+    return t_file.parent if t_file is not None else None
 
 
-def copy_file(src_file: Path, target_dir: Path, grouping='verse', quality='hi', media=None):
+def copy_file(src_file: Path, target_dir: Path, grouping='verse', quality='hi', media=None) -> Path:
+    """ Copy src_file to specified directory in target_dir """
+
     path_without_extension = src_file.stem
     path_without_extension = re.sub(r'_t[\d]+$', '', path_without_extension)
     extension = src_file.suffix
@@ -52,6 +62,8 @@ def copy_file(src_file: Path, target_dir: Path, grouping='verse', quality='hi', 
         logging.debug('Copied successfully!')
     else:
         logging.debug('File exists, skipping...')
+
+    return t_file
 
 
 def check_file_exists(file: Path, remote_dir: Path, media: str, grouping='verse', quality='hi') -> bool:
