@@ -13,7 +13,7 @@ from verse_worker import VerseWorker
 
 class App:
 
-    def __init__(self, input_dir, verbose=False, hour=0, minute=0):
+    def __init__(self, input_dir: Path, verbose=False, hour=0, minute=0):
         self.__ftp_dir = Path(input_dir)
         self.verbose = verbose
         self.hour = hour
@@ -45,7 +45,7 @@ def get_arguments() -> Tuple[Namespace, List[str]]:
     """ Parse command line arguments """
 
     parser = argparse.ArgumentParser(description='Split and convert chapter files to mp3')
-    parser.add_argument('-i', '--input-dir', help='Input directory')
+    parser.add_argument('-i', '--input-dir', type=lambda p: Path(p).absolute(), help='Input directory')
     parser.add_argument("-t", "--trace", action="store_true", help="Enable tracing output")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable logs from subprocess")
     parser.add_argument("-hr", "--hour", type=int, default=0, help="Hour, when to execute workers")
