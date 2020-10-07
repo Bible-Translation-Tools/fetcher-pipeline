@@ -14,7 +14,7 @@ from verse_worker import VerseWorker
 class App:
 
     def __init__(self, input_dir: Path, verbose=False, hour=0, minute=0):
-        self.__ftp_dir = Path(input_dir)
+        self.__ftp_dir = input_dir
         self.verbose = verbose
         self.hour = hour
         self.minute = minute
