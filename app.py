@@ -8,7 +8,6 @@ from time import sleep
 from typing import Tuple, List
 
 import sentry_sdk
-from dotenv import load_dotenv
 
 from chapter_worker import ChapterWorker
 from tr_worker import TrWorker
@@ -89,9 +88,6 @@ def get_arguments() -> Tuple[Namespace, List[str]]:
 def main():
     """ Launch application """
 
-    # Load environment variables
-    load_dotenv()
-
     args, unknown = get_arguments()
 
     if args.trace:
@@ -102,7 +98,7 @@ def main():
     logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s', level=log_level)
 
     sentry_sdk.init(
-        os.getenv("SENTRY"),
+        os.getenv("SENTRY_DSN"),
         traces_sample_rate=0.0
     )
 
