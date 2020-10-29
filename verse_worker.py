@@ -1,26 +1,30 @@
-import argparse
 import logging
 import re
-from argparse import Namespace
 from pathlib import Path
-from typing import Tuple, List
+from typing import Dict
 
-from file_utils import init_temp_dir, rm_tree, copy_file, check_file_exists
+from file_utils import init_temp_dir, rm_tree, copy_file, check_file_exists, rel_path
 from process_tools import fix_metadata, convert_to_mp3
 
 
 class VerseWorker:
 
-    def __init__(self, input_dir, verbose=False):
-        self.__ftp_dir = Path(input_dir)
-        self.__temp_dir = init_temp_dir()
+    def __init__(self, input_dir: Path, verbose=False):
+        self.__ftp_dir = input_dir
+        self.__temp_dir = None
 
         self.__verse_regex = r'_c[\d]+_v[\d]+(?:-[\d]+)?(?:_t[\d]+)?\..*$'
 
         self.verbose = verbose
 
+        self.resources_created = []
+        self.resources_deleted = []
+
     def execute(self):
         logging.debug("Verse worker started!")
+
+        self.clear_report()
+        self.__temp_dir = init_temp_dir()
 
         for src_file in self.__ftp_dir.rglob('*.wav'):
             # Process verse/chunk files only
@@ -80,40 +84,24 @@ class VerseWorker:
             f'Copying verse mp3 {mp3_file} into {remote_dir}'
         )
         if mp3_file.exists():
-            copy_file(mp3_file, remote_dir, grouping)
+            m_file = copy_file(mp3_file, remote_dir, grouping)
+            self.resources_created.append(str(rel_path(m_file, self.__ftp_dir)))
 
         cue_file = verse_file.with_suffix('.cue')
         logging.debug(
             f'Copying verse cue {cue_file} into {remote_dir}'
         )
         if cue_file.exists():
-            copy_file(cue_file, remote_dir, grouping)
+            c_file = copy_file(cue_file, remote_dir, grouping)
+            self.resources_created.append(str(rel_path(c_file, self.__ftp_dir)))
 
+    def get_report(self) -> Dict[str, list]:
+        report = {
+            "resources_created": self.resources_created,
+            "resources_deleted": self.resources_deleted
+        }
+        return report
 
-def get_arguments() -> Tuple[Namespace, List[str]]:
-    """ Parse command line arguments """
-    parser = argparse.ArgumentParser(description='Convert verse files to mp3')
-    parser.add_argument('-i', '--input-dir', help='Input directory')
-    parser.add_argument("-t", "--trace", action="store_true", help="Enable tracing output")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Enable logs from subprocess")
-
-    return parser.parse_known_args()
-
-
-def main():
-    """ Run verse worker """
-    args, unknown = get_arguments()
-
-    if args.trace:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.WARNING
-
-    logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s', level=log_level)
-
-    worker = VerseWorker(args.input_dir, args.verbose)
-    worker.execute()
-
-
-if __name__ == "__main__":
-    main()
+    def clear_report(self):
+        self.resources_created.clear()
+        self.resources_deleted.clear()
