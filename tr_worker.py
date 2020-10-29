@@ -5,7 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List, Tuple, Dict
 
-from file_utils import init_temp_dir, rm_tree, copy_file
+from file_utils import init_temp_dir, rm_tree, copy_file, rel_path
 from process_tools import create_tr
 
 
@@ -28,11 +28,15 @@ class TrWorker:
 
         self.verbose = verbose
 
+        self.resources_created = []
+        self.resources_deleted = []
+
     def execute(self):
         """ Execute worker """
 
         logging.debug("TR worker started!")
 
+        self.clear_report()
         self.__temp_dir = init_temp_dir()
 
         existent_tr = self.find_existent_tr()
@@ -195,7 +199,8 @@ class TrWorker:
         logging.debug(
             f'Copying {new_tr} to {remote_dir}'
         )
-        copy_file(new_tr, remote_dir, grouping, quality, media)
+        t_file = copy_file(new_tr, remote_dir, grouping, quality, media)
+        self.resources_created.append(str(rel_path(t_file, self.__ftp_dir)))
 
         rm_tree(root_dir)
         new_tr.unlink()
@@ -208,3 +213,14 @@ class TrWorker:
             return chapter.zfill(3)
         else:
             return chapter.zfill(2)
+
+    def get_report(self) -> Dict[str, list]:
+        report = {
+            "resources_created": self.resources_created,
+            "resources_deleted": self.resources_deleted
+        }
+        return report
+
+    def clear_report(self):
+        self.resources_created.clear()
+        self.resources_deleted.clear()
