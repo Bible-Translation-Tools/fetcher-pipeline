@@ -1,19 +1,16 @@
-import argparse
 import logging
 import re
-from argparse import Namespace
 from pathlib import Path
-from typing import Tuple, List
 
-from process_tools import fix_metadata, split_chapter, convert_to_mp3
 from file_utils import init_temp_dir, rm_tree, copy_dir, check_file_exists, copy_file, check_dir_empty, has_new_files
+from process_tools import fix_metadata, split_chapter, convert_to_mp3
 
 
 class ChapterWorker:
 
-    def __init__(self, input_dir, verbose=False):
-        self.__ftp_dir = Path(input_dir)
-        self.__temp_dir = init_temp_dir()
+    def __init__(self, input_dir: Path, verbose=False):
+        self.__ftp_dir = input_dir
+        self.__temp_dir = None
 
         self.__chapter_regex = r'_c[\d]+\..*$'
 
@@ -23,6 +20,8 @@ class ChapterWorker:
         """ Execute worker """
 
         logging.debug("Chapter worker started!")
+
+        self.__temp_dir = init_temp_dir()
 
         for src_file in self.__ftp_dir.rglob('*.wav'):
             # Process chapter files only
@@ -232,34 +231,3 @@ class ChapterWorker:
         cue_verse_dir = remote_chapter_dir.joinpath("cue", "verse")
         if cue_verse_dir.exists():
             rm_tree(cue_verse_dir)
-
-
-def get_arguments() -> Tuple[Namespace, List[str]]:
-    """ Parse command line arguments """
-
-    parser = argparse.ArgumentParser(description='Split and convert chapter files to mp3')
-    parser.add_argument('-i', '--input-dir', help='Input directory')
-    parser.add_argument("-t", "--trace", action="store_true", help="Enable tracing output")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Enable logs from subprocess")
-
-    return parser.parse_known_args()
-
-
-def main():
-    """ Run chapter worker """
-
-    args, unknown = get_arguments()
-
-    if args.trace:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.WARNING
-
-    logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s', level=log_level)
-
-    worker = ChapterWorker(args.input_dir, args.verbose)
-    worker.execute()
-
-
-if __name__ == "__main__":
-    main()

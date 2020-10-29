@@ -1,14 +1,12 @@
-import argparse
 import json
 import logging
 import re
-from argparse import Namespace
 from enum import Enum
 from pathlib import Path
 from typing import List, Tuple, Dict
 
 from file_utils import init_temp_dir, rm_tree, copy_file
-from process_tools import create_tr, fix_metadata
+from process_tools import create_tr
 
 
 class Group(Enum):
@@ -18,9 +16,9 @@ class Group(Enum):
 
 class TrWorker:
 
-    def __init__(self, input_dir, verbose=False):
-        self.__ftp_dir = Path(input_dir)
-        self.__temp_dir = init_temp_dir()
+    def __init__(self, input_dir: Path, verbose=False):
+        self.__ftp_dir = input_dir
+        self.__temp_dir = None
 
         self.__book_tr_files = []
         self.__chapter_tr_files = []
@@ -34,6 +32,8 @@ class TrWorker:
         """ Execute worker """
 
         logging.debug("TR worker started!")
+
+        self.__temp_dir = init_temp_dir()
 
         existent_tr = self.find_existent_tr()
 
@@ -208,34 +208,3 @@ class TrWorker:
             return chapter.zfill(3)
         else:
             return chapter.zfill(2)
-
-
-def get_arguments() -> Tuple[Namespace, List[str]]:
-    """ Parse command line arguments """
-
-    parser = argparse.ArgumentParser(description='Create tr files from mp3 and wav files')
-    parser.add_argument('-i', '--input-dir', help='Input directory')
-    parser.add_argument("-t", "--trace", action="store_true", help="Enable tracing output")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Enable logs from subprocess")
-
-    return parser.parse_known_args()
-
-
-def main():
-    """ Run TR worker """
-
-    args, unknown = get_arguments()
-
-    if args.trace:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.WARNING
-
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
-
-    worker = TrWorker(args.input_dir, args.verbose)
-    worker.execute()
-
-
-if __name__ == "__main__":
-    main()
